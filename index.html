@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财务报表分析报告生成器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0f172a;--blue:#1d4ed8;--blue2:#2563eb;--sky:#eff6ff;--slate:#64748b;--dark:#334155;--light:#f8fafc;--border:#e2e8f0;--white:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--light);color:var(--dark);line-height:1.6;padding-bottom:56px}
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);color:#fff;padding:28px 20px 22px}
+.header-inner{max-width:1100px;margin:0 auto}
+.header small{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#94a3b8}
+.header h1{font-size:22px;font-weight:800;margin:4px 0 0;letter-spacing:-0.5px}
+.header p{font-size:13px;color:#94a3b8;margin:4px 0 0}
+.tabs{background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.tabs-inner{max-width:1100px;margin:0 auto;display:flex}
+.tab{padding:12px 16px;cursor:pointer;font-size:13px;color:var(--slate);border-bottom:3px solid transparent;transition:all .2s;display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
+.tab:hover{color:var(--blue)}
+.tab.active{color:var(--blue);font-weight:700;border-bottom-color:var(--blue)}
+.content{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+.card{background:var(--white);border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:16px}
+.form-group{margin-bottom:18px;max-width:500px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px}
+.form-group input,.form-group select{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--blue)}
+.row2{display:flex;gap:16px}
+.row2 .form-group{flex:1}
+.info-box{background:var(--sky);border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-top:16px}
+.info-box h3{font-size:15px;font-weight:700;color:#1e40af;margin-bottom:10px}
+.info-box p{font-size:13px;margin-bottom:6px}
+.info-box .highlight{font-weight:600;color:#1e40af}
+.table-wrap{overflow-x:auto;max-height:68vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{background:#f1f5f9;text-align:right;padding:10px 12px;border-bottom:2px solid #cbd5e1;position:sticky;top:0;z-index:2}
+.data-table th:first-child{text-align:left;position:sticky;left:0;z-index:3;background:#f1f5f9;min-width:210px}
+.data-table td{padding:5px 6px;border-bottom:1px solid var(--border)}
+.data-table td:first-child{position:sticky;left:0;z-index:1;font-size:12.5px;white-space:nowrap;padding:6px 12px}
+.data-table tr:nth-child(odd) td{background:var(--white)}
+.data-table tr:nth-child(even) td{background:#f8fafc}
+.data-table tr:nth-child(odd) td:first-child{background:var(--white)}
+.data-table tr:nth-child(even) td:first-child{background:#f8fafc}
+.data-table input{width:100%;text-align:right;border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:12.5px;background:transparent;outline:none;min-width:100px}
+.data-table input:focus{border-color:var(--blue)}
+.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.table-header h2{font-size:17px;font-weight:700;color:var(--navy);margin:0}
+.table-header h2 span{font-size:12px;font-weight:400;color:#94a3b8}
+.badge{font-size:12px;color:var(--slate);background:#f1f5f9;padding:4px 10px;border-radius:12px}
+.gen-center{text-align:center;padding:32px 20px}
+.gen-center .icon{font-size:48px;margin-bottom:16px}
+.gen-center h2{font-size:20px;font-weight:700;margin-bottom:10px}
+.gen-center .sub{color:var(--slate);font-size:14px;margin-bottom:6px}
+.gen-center .count{color:#94a3b8;font-size:13px;margin-bottom:24px}
+.gen-center .count strong{color:var(--blue)}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.3);transition:all .2s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(37,99,235,.4)}
+.btn-primary:disabled{background:#94a3b8;box-shadow:none;cursor:wait;transform:none}
+.btn-sm{background:var(--white);border:1px solid #d1d5db;padding:7px 16px;border-radius:8px;font-size:12.5px;cursor:pointer;font-weight:600;color:var(--dark)}
+.btn-sm:hover{background:#f1f5f9}
+.btn-success{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,.3);transition:all .2s;width:100%}
+.btn-success:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(22,163,74,.4)}
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;color:var(--slate);text-align:left;margin-top:20px;padding:16px;background:#f8fafc;border-radius:8px}
+.error-msg{background:#fef2f2;color:#dc2626;padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;text-align:left}
+.loading{padding:40px;text-align:center}
+.spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:#1e40af;font-size:15px;font-weight:600}
+.loading .sub{color:#94a3b8;font-size:13px;margin-top:6px}
+.report-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.report-bar h2{font-size:17px;font-weight:700;color:var(--navy)}
+.report-bar .actions{display:flex;gap:8px}
+.report-body{background:var(--white);border-radius:12px;padding:28px 24px;box-shadow:0 1px 3px rgba(0,0,0,.06);line-height:1.7}
+.report-body h1,.report-body h2,.report-body h3,.report-body h4{margin-top:20px;margin-bottom:8px;color:var(--navy)}
+.report-body h1{font-size:22px;border-bottom:2px solid var(--border);padding-bottom:8px}
+.report-body h2{font-size:19px;color:#1e40af;border-bottom:2px solid var(--border);padding-bottom:8px}
+.report-body h3{font-size:16px;color:#1e3a5f}
+.report-body h4{font-size:14.5px;color:var(--dark)}
+.report-body p{margin:4px 0;font-size:13.5px;color:var(--dark)}
+.report-body ul,.report-body ol{padding-left:20px;margin:6px 0}
+.report-body li{font-size:13.5px;margin:3px 0}
+.report-body strong{color:var(--navy)}
+.report-body code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:12px}
+.report-body pre{background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:12px;margin:8px 0}
+.report-body table{width:100%;border-collapse:collapse;font-size:12.5px;margin:12px 0}
+.report-body table th{background:#f1f5f9;padding:8px 10px;border-bottom:2px solid #cbd5e1;text-align:right;white-space:nowrap}
+.report-body table th:first-child{text-align:left}
+.report-body table td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:12px}
+.report-body table td:first-child{text-align:left}
+.report-body table tr:nth-child(even){background:#f8fafc}
+.report-body blockquote{border-left:3px solid var(--blue);padding:8px 16px;margin:8px 0;background:var(--sky);border-radius:0 8px 8px 0;font-size:13px}
+.footer-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--slate);z-index:100}
+.footer-bar button{background:var(--blue);color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.panel{display:none}
+.panel.active{display:block}
+.api-section{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin:20px 0;text-align:left}
+.api-section label{font-size:13px;font-weight:600;color:#92400e;display:block;margin-bottom:6px}
+.api-section input{width:100%;padding:10px 14px;border:1px solid #fde68a;border-radius:8px;font-size:14px;outline:none}
+.api-section input:focus{border-color:#f59e0b}
+.api-section .warn{font-size:12px;color:#b45309;margin-top:8px}
+.divider{border:none;border-top:1px dashed #cbd5e1;margin:20px 0}
+.mode-desc{text-align:left;font-size:13px;color:var(--slate);margin-bottom:12px}
+.mode-desc strong{color:var(--navy)}
+.toast{position:fixed;top:90px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@media(max-width:600px){.header{padding:20px 16px 16px}.header h1{font-size:19px}.content{padding:14px 10px 40px}.card{padding:16px}.steps-grid{grid-template-columns:1fr}.row2{flex-direction:column}.report-body{padding:16px 14px}}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-inner">
+<small>Financial Statement Analysis</small>
+<h1>财务报表分析报告生成器</h1>
+<p>8步骤 · 102项指标 · AI驱动的专业财务分析 · 适用于所有A股企业</p>
+</div></div>
+<div class="tabs"><div class="tabs-inner">
+<div class="tab active" data-tab="info">📋 基本信息</div>
+<div class="tab" data-tab="bs">📊 资产负债表</div>
+<div class="tab" data-tab="is">📈 利润表</div>
+<div class="tab" data-tab="cf">💰 现金流量表</div>
+<div class="tab" data-tab="supp">📎 补充数据</div>
+<div class="tab" data-tab="report">📄 生成报告</div>
+</div></div>
+<div class="content">
+<!-- Panel: Info -->
+<div class="panel active" id="panel-info">
+<div class="card">
+<h2>企业基本信息</h2>
+<div class="form-group"><label>公司名称 *</label><input type="text" id="companyName" placeholder="如：包钢股份"></div>
+<div class="form-group"><label>所属行业</label><input type="text" id="industry" placeholder="如：钢铁/制造业"></div>
+<div class="row2">
+<div class="form-group"><label>起始年份</label><select id="startYear"></select></div>
+<div class="form-group"><label>结束年份</label><select id="endYear"></select></div>
+</div>
+</div>
+  <div class="info-box">
+<h3>📌 使用说明</h3>
+<p>1. 填写公司基本信息和分析年份区间</p>
+<p>2. 在各标签页中录入财务数据（单位：万元），从年报/Wind/东方财富等获取</p>
+<p>3. 不必全部填完——AI会基于已有数据尽可能分析，缺失数据会标注</p>
+<p>4. 点击「生成报告」，选择复制提示词或直接调API生成</p>
+<p class="highlight">💡 核心数据：营业收入、净利润、总资产、经营现金流、固定资产、存货、应收账款等，填写越多报告越详细。</p>
+</div>
+</div>
+<!-- Panel: BS -->
+<div class="panel" id="panel-bs">
+<div class="table-header"><h2>资产负债表 <span>（单位：万元）</span></h2><span class="badge" id="bs-count">已填 0 格</span></div>
+<div class="table-wrap"><table class="data-table" id="table-bs"></table></div>
+</div>
+<!-- Panel: IS -->
+<div class="panel" id="panel-is">
+<div class="table-header"><h2>利润表 <span>（单位：万元）</span></h2><span class="badge" id="is-count">已填 0 格</span></div>
+<div class="table-wrap"><table class="data-table" id="table-is"></table></div>
+</div>
+<!-- Panel: CF -->
+<div class="panel" id="panel-cf">
+<div class="table-header"><h2>现金流量表 <span>（单位：万元）</span></h2><span class="badge" id="cf-count">已填 0 格</span></div>
+<div class="table-wrap"><table class="data-table" id="table-cf"></table></div>
+</div>
+<!-- Panel: Supp -->
+<div class="panel" id="panel-supp">
+<div class="table-header"><h2>补充数据 <span>（折旧摊销等附注信息）</span></h2><span class="badge" id="supp-count">已填 0 格</span></div>
+<div class="table-wrap"><table class="data-table" id="table-supp"></table></div>
+</div>
+<!-- Panel: Report -->
+<div class="panel" id="panel-report">
+<div id="errorBox" class="error-msg" style="display:none"></div>
+<div id="reportPlaceholder" class="gen-center">
+<div class="icon">📊</div>
+<h2>生成财务分析报告</h2>
+<p class="sub" id="genCompanyHint">请先在「基本信息」中填写公司名称</p>
+<p class="count">当前已填写 <strong id="totalCount">0</strong> 项数据</p>
+<div class="steps-grid">
+<div>✓ 步骤一：投资筹资现金流分析</div><div>✓ 步骤五：经营现金流量分析</div>
+<div>✓ 步骤二：资产和资本重构分析</div><div>✓ 步骤六：自由现金流测算</div>
+<div>✓ 步骤三：股权价值增加表分析</div><div>✓ 步骤七：财报质量排雷</div>
+<div>✓ 步骤四：ROE五因素分解分析</div><div>✓ 步骤八：综合分析总结</div>
+</div>
+<hr class="divider">
+<p class="mode-desc"><strong>📋 方式A：复制提示词（推荐，免费）</strong><br>点击按钮复制分析提示词，粘贴到任意AI对话框（Claude、豆包、ChatGPT等）即可生成报告</p>
+<button class="btn-success" onclick="copyPrompt()">📋 复制分析提示词</button>
+<hr class="divider">
+<div class="api-section">
+<label>🔑 方式B：直接生成（需要 Anthropic API Key）</label>
+<input type="password" id="apiKey" placeholder="sk-ant-xxxxxx">
+<p class="warn">⚠️ API Key 仅在本浏览器使用，不会上传。需自费充值 Anthropic 账户。若无 Key 请使用方式A。</p>
+<button class="btn-primary" id="btnGenerate" onclick="generateReport()" style="width:100%;margin-top:8px">🚀 一键生成报告</button>
+</div>
+<hr class="divider">
+<div style="font-size:12px;color:#94a3b8;line-height:1.6;text-align:left">
+<p style="margin:0 0 4px"><strong>💡 推荐使用方式A：</strong></p>
+<p style="margin:0 0 2px">1. 点击「复制分析提示词」</p>
+<p style="margin:0 0 2px">2. 打开任意AI对话（如 claude.ai、chat.openai.com 等）</p>
+<p style="margin:0 0 2px">3. 粘贴提示词并发送</p>
+<p style="margin:0">4. AI会自动生成完整的8步财务分析报告</p>
+</div>
+</div>
+<div id="reportLoading" class="loading" style="display:none">
+<div class="spinner"></div>
+<p id="loadingText">正在调用AI生成报告（约需1-3分钟）...</p>
+<p class="sub">请耐心等待，不要关闭页面</p>
+</div>
+<div id="reportResult" style="display:none">
+<div class="report-bar">
+<h2 id="reportTitle">— 财务分析报告</h2>
+<div class="actions">
+<button class="btn-sm" onclick="exportMD()">⬇ 导出Markdown</button>
+<button class="btn-sm" onclick="resetReport()">🔄 重新生成</button>
+</div>
+</div>
+<div class="report-body" id="reportBody"></div>
+</div>
+</div>
+</div>
+<div class="footer-bar">
+<span id="footerStatus">未填写公司名称 · 已录入 0 项数据</span>
+<button id="footerBtn" onclick="switchTab('report')">生成报告 →</button>
+</div>
+<script>
+// ==================== DATA DEFINITIONS ====================
+const BS_FIELDS=[
+{id:"cash",label:"货币资金"},{id:"tradingAssets",label:"交易性金融资产"},{id:"derivativeAssets",label:"衍生金融资产"},
+{id:"notesReceivable",label:"应收票据"},{id:"accountsReceivable",label:"应收账款"},{id:"prepayments",label:"预付款项"},
+{id:"otherReceivables",label:"其他应收款"},{id:"inventory",label:"存货"},{id:"contractAssets",label:"合同资产"},
+{id:"otherCurrentAssets",label:"其他流动资产"},{id:"totalCurrentAssets",label:"流动资产合计"},
+{id:"debtInvestment",label:"债权投资"},{id:"otherDebtInvestment",label:"其他债权投资"},
+{id:"longTermEquityInv",label:"长期股权投资"},{id:"otherEquityInstrument",label:"其他权益工具投资"},
+{id:"investmentProperty",label:"投资性房地产"},
+{id:"fixedAssetsGross",label:"固定资产原值"},{id:"accumulatedDepreciation",label:"累计折旧"},
+{id:"fixedAssetsNet",label:"固定资产净额"},{id:"constructionInProgress",label:"在建工程"},
+{id:"rightOfUseAssets",label:"使用权资产"},{id:"intangibleAssets",label:"无形资产"},
+{id:"goodwill",label:"商誉"},{id:"longTermPrepaid",label:"长期待摊费用"},
+{id:"deferredTaxAssets",label:"递延所得税资产"},{id:"otherNonCurrentAssets",label:"其他非流动资产"},
+{id:"totalAssets",label:"资产总计"},
+{id:"shortTermBorrowing",label:"短期借款"},{id:"notesPayable",label:"应付票据"},
+{id:"accountsPayable",label:"应付账款"},{id:"advanceReceipts",label:"预收款项"},
+{id:"contractLiabilities",label:"合同负债"},{id:"employeePayable",label:"应付职工薪酬"},
+{id:"taxPayable",label:"应交税费"},{id:"otherPayables",label:"其他应付款"},
+{id:"currentPortionLTDebt",label:"一年内到期的非流动负债"},{id:"otherCurrentLiab",label:"其他流动负债"},
+{id:"totalCurrentLiab",label:"流动负债合计"},
+{id:"longTermBorrowing",label:"长期借款"},{id:"bondsPayable",label:"应付债券"},
+{id:"leaseLiabilities",label:"租赁负债"},{id:"longTermPayables",label:"长期应付款"},
+{id:"deferredTaxLiab",label:"递延所得税负债"},{id:"otherNonCurrentLiab",label:"其他非流动负债"},
+{id:"totalLiabilities",label:"负债合计"},
+{id:"paidInCapital",label:"实收资本（股本）"},{id:"capitalReserve",label:"资本公积"},
+{id:"otherComprehensiveIncome",label:"其他综合收益"},{id:"surplusReserve",label:"盈余公积"},
+{id:"retainedEarnings",label:"未分配利润"},{id:"totalEquityParent",label:"归属于母公司所有者权益"},
+{id:"minorityInterest",label:"少数股东权益"},{id:"totalEquity",label:"所有者权益合计"},
+{id:"totalLiabEquity",label:"负债和所有者权益总计"},
+];
+const IS_FIELDS=[
+{id:"revenue",label:"营业收入"},{id:"costOfSales",label:"营业成本"},
+{id:"taxSurcharges",label:"税金及附加"},{id:"sellingExpenses",label:"销售费用"},
+{id:"adminExpenses",label:"管理费用"},{id:"rdExpenses",label:"研发费用"},
+{id:"financialExpenses",label:"财务费用"},
+{id:"interestExpenseDetail",label:" 其中：利息费用"},{id:"interestIncomeDetail",label:" 其中：利息收入"},
+{id:"otherIncome",label:"其他收益"},{id:"investmentIncome",label:"投资收益"},
+{id:"incomeFromAssociates",label:" 其中：对联营/合营企业投资收益"},
+{id:"assetImpairmentLoss",label:"资产减值损失（损失以\"-\"号填列）"},
+{id:"creditImpairmentLoss",label:"信用减值损失（损失以\"-\"号填列）"},
+{id:"assetDisposalIncome",label:"资产处置收益"},
+{id:"nonOperatingIncome",label:"营业外收入"},{id:"nonOperatingExpense",label:"营业外支出"},
+{id:"totalProfit",label:"利润总额"},{id:"incomeTaxExpense",label:"所得税费用"},
+{id:"netProfit",label:"净利润"},{id:"netProfitParent",label:"归属于母公司所有者的净利润"},
+{id:"otherCI",label:"其他综合收益的税后净额"},
+];
+const CF_FIELDS=[
+{id:"cashFromSales",label:"销售商品、提供劳务收到的现金"},
+{id:"taxRefunds",label:"收到的税费返还"},
+{id:"otherOperatingCashIn",label:"收到其他与经营活动有关的现金"},
+{id:"cashPaidForGoods",label:"购买商品、接受劳务支付的现金"},
+{id:"cashPaidToEmployees",label:"支付给职工以及为职工支付的现金"},
+{id:"taxesPaid",label:"支付的各项税费"},
+{id:"otherOperatingCashOut",label:"支付其他与经营活动有关的现金"},
+{id:"netOperatingCF",label:"经营活动产生的现金流量净额"},
+{id:"cashFromDisposalAssets",label:"处置固定资产等收回的现金净额"},
+{id:"cashFromInvReturn",label:"取得投资收益收到的现金"},
+{id:"cashFromDisposalSubs",label:"处置子公司收到的现金净额"},
+{id:"cashPaidForFixedAssets",label:"购建固定资产等支付的现金"},
+{id:"cashPaidForInvestments",label:"投资支付的现金"},
+{id:"cashPaidForSubs",label:"取得子公司支付的现金净额"},
+{id:"netInvestingCF",label:"投资活动产生的现金流量净额"},
+{id:"cashFromInvestors",label:"吸收投资收到的现金"},
+{id:"cashFromBorrowing",label:"取得借款收到的现金"},
+{id:"cashFromBonds",label:"发行债券收到的现金"},
+{id:"cashRepayDebt",label:"偿还债务支付的现金"},
+{id:"cashDividendsInterest",label:"分配股利、利润或偿付利息支付的现金"},
+{id:"dividendToParent",label:" 其中：支付给母公司股东的股利"},
+{id:"dividendToMinority",label:" 子公司支付给少数股东的股利"},
+{id:"netFinancingCF",label:"筹资活动产生的现金流量净额"},
+];
+const SUPP_FIELDS=[
+{id:"depreciationFA",label:"固定资产折旧"},
+{id:"depreciationROU",label:"使用权资产折旧"},
+{id:"amortizationIA",label:"无形资产摊销"},
+{id:"amortizationLTP",label:"长期待摊费用摊销"},
+{id:"disposalLossLTA",label:"处置长期资产的损失"},
+{id:"fixedAssetScrapLoss",label:"固定资产报废损失"},
+{id:"totalInterestExpense",label:"利息支出总额（含资本化利息）"},
+{id:"capitalizedInterest",label:"其中：资本化利息"},
+{id:"vatOutputRate",label:"增值税销项税率（如13%填0.13）"},
+{id:"vatInputRate",label:"增值税进项税率（如13%填0.13）"},
+{id:"interestPayableBegin",label:"期初应付利息"},
+{id:"interestPayableEnd",label:"期末应付利息"},
+];
+// ==================== STATE ====================
+let currentTab='info';let reportMD='';
+const allData={bs:{},is:{},cf:{},supp:{}};
+const FIELD_MAP={bs:BS_FIELDS,is:IS_FIELDS,cf:CF_FIELDS,supp:SUPP_FIELDS};
+// ==================== INIT ====================
+function init(){
+const sy=document.getElementById('startYear'),ey=document.getElementById('endYear');
+for(let y=2016;y<=2026;y++){sy.add(new Option(y+'年',y));ey.add(new Option(y+'年',y));}
+sy.value=2020;ey.value=2024;
+sy.onchange=ey.onchange=()=>{rebuildTables();updateCounts();};
+document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>switchTab(t.dataset.tab);});
+rebuildTables();updateCounts();
+document.getElementById('companyName').oninput=updateCounts;
+}
+function getYears(){
+const s=+document.getElementById('startYear').value,e=+document.getElementById('endYear').value;
+let years=[];for(let y=s;y<=e;y++)years.push(y);return years;
+}
+function switchTab(name){
+currentTab=name;
+document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('active',t.dataset.tab===name);});
+document.querySelectorAll('.panel').forEach(p=>{p.classList.toggle('active',p.id==='panel-'+name);});
+if(name==='report'){document.getElementById('footerBtn').style.display='none';updateReportPlaceholder();}
+else{document.getElementById('footerBtn').style.display='';}
+updateCounts();
+}
+// ==================== TABLE BUILD ====================
+function rebuildTables(){
+const years=getYears();
+['bs','is','cf','supp'].forEach(key=>{
+const fields=FIELD_MAP[key];const table=document.getElementById('table-'+key);
+if(!allData[key])allData[key]={};
+years.forEach(y=>{if(!allData[key][y])allData[key][y]={};});
+let html='<thead><tr><th>项目</th>';
+years.forEach(y=>{html+='<th>'+y+'年</th>';});
+html+='</tr></thead><tbody>';
+fields.forEach(f=>{
+html+='<tr><td>'+f.label+'</td>';
+years.forEach(y=>{const val=allData[key][y]?.[f.id]||'';
+html+='<td><input type="text" inputmode="decimal" data-key="'+key+'" data-year="'+y+'" data-field="'+f.id+'" value="'+val+'" placeholder="—"></td>';});
+html+='</tr>';
+});
+html+='</tbody>';table.innerHTML=html;
+});
+document.querySelectorAll('.data-table input').forEach(inp=>{
+inp.oninput=function(){const k=this.dataset.key,y=this.dataset.year,f=this.dataset.field;
+if(!allData[k][y])allData[k][y]={};allData[k][y][f]=this.value;updateCounts();};
+});
+}
+// ==================== COUNTS ====================
+function countFilled(key){let c=0;getYears().forEach(y=>{
+if(allData[key]?.[y])Object.values(allData[key][y]).forEach(v=>{if(v&&v.trim())c++;});});return c;}
+function totalFilled(){return countFilled('bs')+countFilled('is')+countFilled('cf')+countFilled('supp');}
+function updateCounts(){
+['bs','is','cf','supp'].forEach(k=>{const el=document.getElementById(k+'-count');if(el)el.textContent='已填 '+countFilled(k)+' 格';});
+const total=totalFilled();
+const name=document.getElementById('companyName').value||'未填写公司名称';
+const years=getYears();
+document.getElementById('footerStatus').textContent=name+' · '+years[0]+'—'+years[years.length-1]+'年 · 已录入 '+total+' 项数据';
+const tc=document.getElementById('totalCount');if(tc)tc.textContent=total;
+}
+function updateReportPlaceholder(){
+const name=document.getElementById('companyName').value;
+const hint=document.getElementById('genCompanyHint');
+if(hint)hint.textContent=name?'将为「'+name+'」生成分析报告':'请先在「基本信息」中填写公司名称';
+const tc=document.getElementById('totalCount');if(tc)tc.textContent=totalFilled();
+}
+// ==================== PROMPT BUILD ====================
+function buildPrompt(){
+const name=document.getElementById('companyName').value;
+const ind=document.getElementById('industry').value;
+const years=getYears();
+let p='请基于以下财务数据，为"'+name+'"（行业：'+(ind||'未指定')+'）撰写一份完整的财务分析报告。\n\n';
+p+='分析年度：'+years.join('、')+'年\n';
+p+='股权资本成本：8%\n\n';
+p+='以下是完整财务数据（单位：万元，比率类数据直接填写小数）：\n\n';
+const fmt=(title,fields,key)=>{
+let s='【'+title+'】（单位：万元）\n| 项目 | '+years.map(y=>y+'年').join(' | ')+' |\n|---|'+years.map(()=>'---').join('|')+'|\n';
+let hasAny=false;
+fields.forEach(f=>{const vals=years.map(y=>allData[key]?.[y]?.[f.id]||'—');
+if(vals.some(v=>v!=='—'&&v!=='')){s+='| '+f.label+' | '+vals.join(' | ')+' |\n';hasAny=true;}});
+return hasAny?s+'\n':'';
+};
+p+=fmt('资产负债表',BS_FIELDS,'bs');
+p+=fmt('利润表',IS_FIELDS,'is');
+p+=fmt('现金流量表',CF_FIELDS,'cf');
+p+=fmt('补充数据',SUPP_FIELDS,'supp');
+p+='请严格按照以下8个步骤进行分析，每个步骤计算对应指标并给出分析评价：\n\n';
+p+='**步骤一：投资、筹资现金流量表分析**\n';
+p+='计算指标1-16（保全性资本支出、长期经营资产净投资额、扩张性资本支出、现金自给率、债务资本成本、加权平均资本成本WACC、资本结构、资本期限等）。分析公司战略投资方向和资本管理能力。\n\n';
+p+='**步骤二：资产和资本分析**\n';
+p+='将资产负债表重构为资产资本表。计算指标17-38（金融资产、长期股权投资、长期经营资产、周转性经营投入、债务资本、股权资本等金额及结构比例，流动比率、速动比率、长期融资净值、周转性经营投入长期化率等）。分析资产结构、资本结构和流动性风险。\n\n';
+p+='**步骤三：股权价值增加表分析**\n';
+p+='将利润表重构为股权价值增加表。计算指标39-67（营业收入增速、毛利率、各项费用率、息税前经营利润、息前税后经营利润、金融资产收益、真实财务费用、实际所得税税率、净利润、股权价值增加值=净利润-股权资本×8%等）。分析利润结构与质量。\n\n';
+p+='**步骤四：股东权益回报率分析**\n';
+p+='计算指标68-96。ROE五因素分解：息税前经营利润率×资产周转率×财务成本效应比率×财务杠杆倍数×企业所得税效应比率。还包括经营资产周转率、固定资产周转率及成新率、存货/应收/应付周转率及天数、营业周期、现金周期、经营资产回报率、长期股权投资收益率、金融资产收益率、财务杠杆效应、利息保障倍数、有形资产回报率ROTCE等。\n\n';
+p+='**步骤五：经营活动现金流量分析**\n';
+p+='计算指标97-100（营业收入现金含量两种口径、成本费用付现率、息前税后经营利润现金含量、净利润现金含量）。\n\n';
+p+='**步骤六：自由现金流计算**\n';
+p+='计算指标101-102（经营资产自由现金流量=经营活动现金流量净额-保全性资本支出、股权自由现金流量=经营资产自由现金流量-利息支出）。\n\n';
+p+='**步骤七：财报质量分析**\n';
+p+='基于前六步数据进行排雷，检查九大危险信号（突变性、背离性、脱节性、巨额洗澡、年报变脸、关联操控、人事震荡、内部抛售、资本财技），结合行业特点给出风险提示。\n\n';
+p+='**步骤八：财务报表分析总结**\n';
+p+='串联所有分析，将多年度1~102项数据汇总成表格，给出公司整体财务画像和价值判断。\n\n';
+p+='要求：\n';
+p+='1. 每个指标列出计算公式和具体数值计算过程\n';
+p+='2. 数据缺失的指标标注"数据缺失，无法计算"\n';
+p+='3. 中文撰写，Markdown格式，含必要表格\n';
+p+='4. 结合'+(ind||'该企业所在')+'行业特点给出针对性分析评价\n';
+p+='5. 不要在报告中出现任何个人姓名';
+return p;
+}
+// ==================== COPY PROMPT ====================
+function copyPrompt(){
+const name=document.getElementById('companyName').value.trim();
+if(!name){showError('请先填写公司名称');return;}
+if(totalFilled()<1){showError('请至少填写一些财务数据');return;}
+hideError();
+const p=buildPrompt();
+navigator.clipboard.writeText(p).then(()=>{
+showToast('✅ 提示词已复制到剪贴板！去AI对话框粘贴即可');
+}).catch(()=>{
+const ta=document.createElement('textarea');ta.value=p;document.body.appendChild(ta);ta.select();
+try{document.execCommand('copy');showToast('✅ 提示词已复制！');}catch(e){showToast('❌ 复制失败，请手动选择文本复制');}
+document.body.removeChild(ta);
+});
+}
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);
+setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(()=>t.remove(),300);},2500);}
+// ==================== REPORT GENERATION (FIXED) ====================
+async function generateReport(){
+const name=document.getElementById('companyName').value.trim();
+if(!name){showError('请先填写公司名称');return;}
+if(totalFilled()<3){showError('请至少填写一些核心财务数据');return;}
+const apiKey=document.getElementById('apiKey').value.trim();
+if(!apiKey){showError('请填写 Anthropic API Key，或使用方式A「复制提示词」');return;}
+hideError();
+document.getElementById('reportPlaceholder').style.display='none';
+document.getElementById('reportLoading').style.display='block';
+document.getElementById('reportResult').style.display='none';
+document.getElementById('btnGenerate').disabled=true;
+document.getElementById('loadingText').textContent='正在调用AI生成报告（约需1-3分钟）...';
+const prompt=buildPrompt();
+try{
+const resp=await fetch('https://api.anthropic.com/v1/messages',{
+method:'POST',
+headers:{
+'Content-Type':'application/json',
+'x-api-key':apiKey,
+'anthropic-version':'2023-06-01',
+'anthropic-dangerous-direct-browser-access':'true'
+},
+body:JSON.stringify({
+model:'claude-sonnet-4-20250514',
+max_tokens:16000,
+system:'你是一位专业的财务分析师，精通中国上市公司财报分析。请按照标准的8步骤102指标财务分析框架，基于用户提供的财务数据撰写完整、专业、有深度的财务分析报告。所有指标必须展示计算公式和过程。使用Markdown格式输出。不要在报告中出现任何个人姓名。',
+messages:[{role:'user',content:prompt}]
+})
+});
+const data=await resp.json();
+if(data.error){showError('API错误: '+(data.error.message||JSON.stringify(data.error)));resetUI();return;}
+const text=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
+if(!text){showError('AI未返回有效内容，请重试或检查API Key');resetUI();return;}
+reportMD=text;
+document.getElementById('reportLoading').style.display='none';
+document.getElementById('reportResult').style.display='block';
+document.getElementById('reportTitle').textContent=name+' — 财务分析报告';
+document.getElementById('reportBody').innerHTML=renderMarkdown(text);
+document.getElementById('btnGenerate').disabled=false;
+}catch(err){
+showError('请求失败: '+err.message+'。建议使用方式A「复制提示词」粘贴到AI对话框生成。');
+resetUI();
+}
+}
+function resetUI(){
+document.getElementById('reportLoading').style.display='none';
+document.getElementById('reportPlaceholder').style.display='block';
+document.getElementById('btnGenerate').disabled=false;
+}
+function resetReport(){
+reportMD='';
+document.getElementById('reportResult').style.display='none';
+document.getElementById('reportPlaceholder').style.display='block';
+updateReportPlaceholder();
+}
+function showError(msg){const el=document.getElementById('errorBox');el.textContent=msg;el.style.display='block';}
+function hideError(){document.getElementById('errorBox').style.display='none';}
+// ==================== MARKDOWN RENDERER ====================
+function renderMarkdown(md){
+let html=md;
+html=html.replace(/```(\w*)\n([\s\S]*?)```/g,(m,lang,code)=>'<pre><code>'+escHtml(code)+'</code></pre>');
+html=html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)*)/gm,(m,header,sep,body)=>{
+const ths=header.split('|').filter(c=>c.trim()).map(c=>'<th>'+c.trim()+'</th>').join('');
+const rows=body.trim().split('\n').map(r=>{
+const tds=r.split('|').filter(c=>c.trim()).map(c=>'<td>'+c.trim()+'</td>').join('');
+return '<tr>'+tds+'</tr>';
+}).join('');
+return '<div style="overflow-x:auto"><table><thead><tr>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+});
+html=html.replace(/^######\s+(.+)$/gm,'<h6>$1</h6>');
+html=html.replace(/^#####\s+(.+)$/gm,'<h5>$1</h5>');
+html=html.replace(/^####\s+(.+)$/gm,'<h4>$1</h4>');
+html=html.replace(/^###\s+(.+)$/gm,'<h3>$1</h3>');
+html=html.replace(/^##\s+(.+)$/gm,'<h2>$1</h2>');
+html=html.replace(/^#\s+(.+)$/gm,'<h1>$1</h1>');
+html=html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+html=html.replace(/\*(.+?)\*/g,'<em>$1</em>');
+html=html.replace(/`(.+?)`/g,'<code>$1</code>');
+html=html.replace(/^>\s+(.+)$/gm,'<blockquote>$1</blockquote>');
+html=html.replace(/^[-*]\s+(.+)$/gm,'<li>$1</li>');
+html=html.replace(/^(\d+)\.\s+(.+)$/gm,'<li>$2</li>');
+html=html.replace(/((?:<li>.*<\/li>\n?)+)/g,'<ul>$1</ul>');
+html=html.replace(/^(?!<[hupltdb])((?!<).+)$/gm,'<p>$1</p>');
+html=html.replace(/\n{2,}/g,'\n');
+return html;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// ==================== EXPORT ====================
+function exportMD(){
+if(!reportMD)return;
+const name=document.getElementById('companyName').value||'企业';
+const blob=new Blob([reportMD],{type:'text/markdown;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download=name+'_财务分析报告.md';a.click();
+URL.revokeObjectURL(url);
+}
+// ==================== START ====================
+init();
+</script>
+</body>
+</html>
