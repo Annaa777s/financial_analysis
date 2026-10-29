@@ -109,6 +109,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .data-table input[aria-invalid="true"]{border-color:#dc2626;background:#fff1f2}
 .notice{padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;margin:12px 0;white-space:pre-line}
 #fixedMetricResults{overflow-x:auto}
+.ocr-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
+.ocr-options .form-group{margin:0;max-width:none}
+.ocr-preview-image{display:block;max-width:100%;max-height:320px;object-fit:contain;margin:16px auto;border:1px solid var(--border)}
+.ocr-text{width:100%;min-height:130px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font:13px monospace;resize:vertical}
+.ocr-review{overflow-x:auto;margin:14px 0}
+.ocr-review table{min-width:650px}
+.ocr-review select,.ocr-review input[type=text]{width:100%;min-width:130px;padding:8px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px}
+.ocr-review td:first-child{width:48px}
+.ocr-status{min-height:24px;font-size:14px;color:#1e40af;margin:12px 0;white-space:pre-line}
+.ocr-target-note{font-size:13px;font-weight:600;color:#92400e}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .mode-desc{text-align:left;font-size:13px;color:var(--slate);margin-bottom:12px}
 .mode-desc strong{color:var(--navy)}
@@ -129,6 +139,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="tab" data-tab="is">📈 利润表</div>
 <div class="tab" data-tab="cf">💰 现金流量表</div>
 <div class="tab" data-tab="supp">📎 补充数据</div>
+<div class="tab" data-tab="ocr">🖼 图片导入</div>
 <div class="tab" data-tab="metrics">🧮 指标核对</div>
 <div class="tab" data-tab="report">📄 生成报告</div>
 </div></div>
@@ -154,22 +165,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <p>3. 不必全部填完——AI会基于已有数据尽可能分析，缺失数据会标注</p>
 <p>4. 点击「生成报告」，选择复制提示词或直接调API生成</p>
 <p>5. 在「指标核对」中补充首年的期初余额，即可查看固定公式及计算过程</p>
+<p>6. 报表截图可在「图片导入」中识别，核对科目、数据列、单位和目标年份后再填入</p>
 <p class="highlight">💡 核心数据：营业收入、净利润、总资产、经营现金流、固定资产、存货、应收账款等，填写越多报告越详细。</p>
 </div>
 </div>
 <!-- Panel: BS -->
 <div class="panel" id="panel-bs">
-<div class="table-header"><h2>资产负债表 <span>（单位：万元）</span></h2><span class="badge" id="bs-count">已填 0 格</span></div>
+<div class="table-header"><h2>资产负债表 <span>（单位：万元）</span></h2><button class="btn-sm" onclick="openOCR('bs')">图片识别导入</button><span class="badge" id="bs-count">已填 0 格</span></div>
 <div class="table-wrap"><table class="data-table" id="table-bs"></table></div>
 </div>
 <!-- Panel: IS -->
 <div class="panel" id="panel-is">
-<div class="table-header"><h2>利润表 <span>（单位：万元）</span></h2><span class="badge" id="is-count">已填 0 格</span></div>
+<div class="table-header"><h2>利润表 <span>（单位：万元）</span></h2><button class="btn-sm" onclick="openOCR('is')">图片识别导入</button><span class="badge" id="is-count">已填 0 格</span></div>
 <div class="table-wrap"><table class="data-table" id="table-is"></table></div>
 </div>
 <!-- Panel: CF -->
 <div class="panel" id="panel-cf">
-<div class="table-header"><h2>现金流量表 <span>（单位：万元）</span></h2><span class="badge" id="cf-count">已填 0 格</span></div>
+<div class="table-header"><h2>现金流量表 <span>（单位：万元）</span></h2><button class="btn-sm" onclick="openOCR('cf')">图片识别导入</button><span class="badge" id="cf-count">已填 0 格</span></div>
 <div class="table-wrap"><table class="data-table" id="table-cf"></table></div>
 </div>
 <!-- Panel: Supp -->
@@ -177,6 +189,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="table-header"><h2>补充数据 <span>（折旧摊销等附注信息）</span></h2><span class="badge" id="supp-count">已填 0 格</span></div>
 <div class="table-wrap"><table class="data-table" id="table-supp"></table></div>
 </div>
+<!-- Local image recognition and review -->
+<div class="panel" id="panel-ocr"><div class="card">
+<h2>报表图片识别导入</h2>
+<p class="hint">上传清晰、正向的报表截图。图片在本浏览器识别，无需API Key；首次使用需联网下载识别程序和中英文语言包。识别结果须核对后导入，不会直接覆盖原表。</p>
+<div class="form-group"><label for="ocrFile">选择报表图片（PNG、JPG或WebP，最大15MB）</label><input id="ocrFile" type="file" accept="image/png,image/jpeg,image/webp"></div>
+<img id="ocrImage" class="ocr-preview-image" alt="所选报表图片预览" hidden>
+<div class="toolbar"><button class="btn-primary" id="ocrStart" onclick="recognizeStatementImage()">开始图片识别</button><button class="btn-sm" id="ocrCancel" onclick="cancelOCR()" hidden>取消识别</button></div>
+<div id="ocrStatus" class="ocr-status" role="status" aria-live="polite">请选择图片。建议裁去手机状态栏、工具栏及无关文字，每次识别一张表。</div>
+<div class="ocr-options">
+<div class="form-group"><label for="ocrTarget">填入哪张表</label><select id="ocrTarget"><option value="bs">资产负债表</option><option value="is">利润表</option><option value="cf">现金流量表</option><option value="supp">补充数据</option></select></div>
+<div class="form-group"><label for="ocrYear">目标年份</label><select id="ocrYear"></select></div>
+<div class="form-group"><label for="ocrColumn">识别哪一列金额</label><select id="ocrColumn"><option value="0">第1列金额（从左往右）</option><option value="1">第2列金额</option><option value="2">第3列金额</option><option value="3">第4列金额</option></select></div>
+<div class="form-group"><label for="ocrUnit">图片原始金额单位</label><select id="ocrUnit"><option value="">请确认原图单位</option><option value="1">万元（不换算）</option><option value="0.0001">元 → 万元</option><option value="0.1">千元 → 万元</option><option value="100">百万元 → 万元</option><option value="10000">亿元 → 万元</option></select></div>
+</div>
+<p id="ocrDetected" class="hint"></p>
+<details><summary>查看或修正识别文本</summary><p class="hint">可修正错字，或粘贴PDF复制的文本。每行一项，科目后用空格或Tab分隔金额；保留各列的“—”占位。修改后点“重新解析文本”。</p><textarea id="ocrRawText" class="ocr-text" aria-label="识别原文" placeholder="营业收入  1,234.50  1,100.00"></textarea><button class="btn-sm" onclick="parseOCRText()">重新解析文本</button></details>
+<div id="ocrReview" class="ocr-review"></div>
+<p class="ocr-target-note">请对照原图检查小数点、负号、单位、科目和年份。未匹配或模糊匹配的行需手动选择科目并勾选。</p>
+<div class="toolbar"><label><input type="checkbox" id="ocrOverwrite"> 允许覆盖目标年份已有数据（默认只填空白）</label></div>
+<button class="btn-primary" id="ocrApply" onclick="applyOCRRows()" disabled>确认并填入选中项</button>
+<p class="hint">图片识别不会调用外部AI。之后使用报告API或把提示词提交至AI平台时，录入的财务数据才会按相应操作发送。</p>
+</div></div>
 <!-- Panel: Report -->
 <div class="panel" id="panel-metrics">
 <div class="card">
@@ -355,11 +389,13 @@ document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>switchTab(t.dataset.
 document.getElementById(id).oninput=function(){const y=+document.getElementById('startYear').value-1;
 if(!allData.bs[y])allData.bs[y]={};allData.bs[y][field]=this.value;dataChanged();};});
 rebuildTables();syncOpeningInputs();updateCounts();
+initOCR();
 }
 function dataChanged(){
 dataRevision++;
 if(reportMD){resetReport();}
 updateCounts();updateReportPlaceholder();
+syncOCRYears();
 }
 function syncOpeningInputs(){
 const y=+document.getElementById('startYear').value-1;
@@ -420,6 +456,217 @@ const name=document.getElementById('companyName').value;
 const hint=document.getElementById('genCompanyHint');
 if(hint)hint.textContent=name?'将为「'+name+'」生成分析报告':'请先在「基本信息」中填写公司名称';
 const tc=document.getElementById('totalCount');if(tc)tc.textContent=totalFilled();
+}
+// ==================== LOCAL STATEMENT IMAGE OCR ====================
+const OCR_ALIASES={
+fixedAssetsNet:['固定资产','固定资产账面价值'],totalEquityParent:['归属于母公司股东权益合计','归属于母公司所有者权益合计','归属于母公司股东的权益','归属于上市公司股东的净资产'],
+totalEquity:['所有者权益','股东权益合计','所有者权益或股东权益合计'],totalLiabEquity:['负债和股东权益总计','负债和所有者权益或股东权益总计'],
+netProfitParent:['归属于母公司股东的净利润','归属于上市公司股东的净利润','归属于母公司所有者的净利润'],
+incomeFromAssociates:['对联营企业和合营企业的投资收益','其中对联营企业和合营企业的投资收益'],
+interestExpenseDetail:['利息费用','其中利息费用'],interestIncomeDetail:['利息收入','其中利息收入'],
+paidInCapital:['实收资本或股本','股本'],longTermPrepaid:['长期待摊费用'],
+cashPaidForFixedAssets:['购建固定资产无形资产和其他长期资产支付的现金'],
+cashFromDisposalAssets:['处置固定资产无形资产和其他长期资产收回的现金净额'],
+cashPaidForSubs:['取得子公司及其他营业单位支付的现金净额'],cashFromDisposalSubs:['处置子公司及其他营业单位收到的现金净额'],
+dividendToMinority:['其中子公司支付给少数股东的股利利润'],cashFromInvestors:['吸收投资收到的现金'],
+depreciationFA:['固定资产折旧油气资产折耗生产性生物资产折旧'],depreciationROU:['使用权资产折旧'],
+amortizationIA:['无形资产摊销'],amortizationLTP:['长期待摊费用摊销']
+};
+const OCR_STATE={file:null,url:null,rows:[],worker:null,busy:false,run:0,library:null};
+function initOCR(){
+document.getElementById('ocrFile').onchange=selectOCRImage;
+['ocrTarget','ocrColumn','ocrUnit'].forEach(id=>document.getElementById(id).onchange=()=>parseOCRText(true));
+document.getElementById('ocrYear').onchange=renderOCRReview;
+document.getElementById('ocrOverwrite').onchange=renderOCRReview;
+syncOCRYears();
+}
+function syncOCRYears(){
+const select=document.getElementById('ocrYear');if(!select)return;
+const years=getYears(),prior=+select.value;
+select.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'年</option>').join('');
+select.value=String(years.includes(prior)?prior:years[years.length-1]);
+}
+function openOCR(target){
+if(OCR_STATE.busy){switchTab('ocr');return;}
+document.getElementById('ocrTarget').value=target;syncOCRYears();parseOCRText(true);switchTab('ocr');
+}
+function ocrStatus(message){document.getElementById('ocrStatus').textContent=message;}
+function ocrBusy(busy){
+OCR_STATE.busy=busy;
+['ocrFile','ocrTarget','ocrYear','ocrColumn','ocrUnit','ocrRawText','ocrStart'].forEach(id=>document.getElementById(id).disabled=busy);
+document.getElementById('ocrCancel').hidden=!busy;
+document.getElementById('ocrApply').disabled=busy||!OCR_STATE.rows.length;
+}
+function selectOCRImage(){
+const file=document.getElementById('ocrFile').files?.[0];
+if(OCR_STATE.url)URL.revokeObjectURL(OCR_STATE.url);
+OCR_STATE.file=null;OCR_STATE.url=null;OCR_STATE.rows=[];
+document.getElementById('ocrRawText').value='';document.getElementById('ocrUnit').value='';
+document.getElementById('ocrDetected').textContent='';
+const image=document.getElementById('ocrImage');image.hidden=true;image.removeAttribute('src');renderOCRReview();
+if(!file)return;
+if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){ocrStatus('请选择15MB以内的PNG、JPG或WebP图片。手机照片请先保存为截图。');return;}
+OCR_STATE.file=file;OCR_STATE.url=URL.createObjectURL(file);image.src=OCR_STATE.url;image.hidden=false;
+ocrStatus('图片已选择。点击“开始图片识别”，完成后核对数据列、单位和年份。');
+}
+function loadOCRLibrary(){
+if(window.Tesseract?.createWorker)return Promise.resolve(window.Tesseract);
+if(OCR_STATE.library)return OCR_STATE.library;
+OCR_STATE.library=new Promise((resolve,reject)=>{
+const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js';script.async=true;script.crossOrigin='anonymous';
+let settled=false;
+const fail=()=>{if(settled)return;settled=true;clearTimeout(timer);script.remove();OCR_STATE.library=null;reject(new Error('识别组件加载失败，请检查网络后重试。也可粘贴PDF文字后重新解析。'));};
+const timer=setTimeout(fail,30000);
+script.onload=()=>{if(settled)return;if(!window.Tesseract?.createWorker){fail();return;}settled=true;clearTimeout(timer);resolve(window.Tesseract);};
+script.onerror=fail;document.head.appendChild(script);
+});return OCR_STATE.library;
+}
+async function prepareOCRImage(file){
+const url=URL.createObjectURL(file),img=new Image();
+try{
+await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('无法解码此图片，请使用清晰截图。'));img.src=url;});
+if(!img.naturalWidth||!img.naturalHeight||img.naturalWidth*img.naturalHeight>50000000)throw new Error('图片尺寸过大，请裁剪到单张报表后重试。');
+const scale=Math.min(2,2400/img.naturalWidth,3200/img.naturalHeight);
+const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
+const context=canvas.getContext('2d');if(!context)throw new Error('当前浏览器不支持图片处理，请改用Safari或Chrome。');
+context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(img,0,0,canvas.width,canvas.height);
+return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('图片处理失败。')),'image/png'));
+}finally{URL.revokeObjectURL(url);}
+}
+function textFromOCRWords(tsv){
+if(!tsv)return '';
+const words=tsv.trim().split('\n').slice(1).map(line=>{
+const a=line.split('\t');return {level:+a[0],left:+a[6],top:+a[7],width:+a[8],height:+a[9],text:a.slice(11).join('\t').trim()};
+}).filter(w=>w.level===5&&w.text&&w.height>0&&Number.isFinite(w.top));
+const rows=[];
+for(const word of words.sort((a,b)=>a.top+a.height/2-b.top-b.height/2||a.left-b.left)){
+const center=word.top+word.height/2;
+let row=rows.find(r=>Math.abs(r.center-center)<=Math.max(5,Math.min(r.height,word.height)*.45));
+if(!row){row={center,height:word.height,words:[]};rows.push(row);}row.words.push(word);
+}
+return rows.sort((a,b)=>a.center-b.center).map(row=>{
+const sorted=row.words.sort((a,b)=>a.left-b.left);let line='',right=null;
+for(const w of sorted){const gap=right===null?0:w.left-right;line+=(right===null?'':gap>Math.max(12,w.height*.8)?'\t':' ')+w.text;right=w.left+w.width;}
+return line;
+}).join('\n');
+}
+async function recognizeStatementImage(){
+if(OCR_STATE.busy)return;
+if(!OCR_STATE.file){ocrStatus('请先选择报表图片。');return;}
+const run=++OCR_STATE.run;let worker=null,timer;
+OCR_STATE.rows=[];renderOCRReview();ocrBusy(true);ocrStatus('正在加载本地识别组件，首次使用需要下载语言包……');
+const progress=m=>{if(run!==OCR_STATE.run)return;const percent=Math.round((m.progress||0)*100);
+ocrStatus(m.status==='recognizing text'?'正在识别报表文字：'+percent+'%':'正在准备识别引擎和中英文语言包……'+percent+'%');};
+try{
+const task=(async()=>{
+const library=await loadOCRLibrary();if(run!==OCR_STATE.run)return null;
+const image=await prepareOCRImage(OCR_STATE.file);if(run!==OCR_STATE.run)return null;
+worker=await library.createWorker(['chi_sim','eng'],1,{
+workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',logger:progress
+});
+if(run!==OCR_STATE.run){await worker.terminate();worker=null;return null;}
+OCR_STATE.worker=worker;
+await worker.setParameters({preserve_interword_spaces:'1',tessedit_pageseg_mode:6});
+const result=await worker.recognize(image,{}, {text:true,tsv:true});return result.data;
+})();
+const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('识别超时，请使用更小、更清晰的单表截图后重试。')),180000);});
+const data=await Promise.race([task,timeout]);
+if(run!==OCR_STATE.run||!data)return;
+document.getElementById('ocrRawText').value=textFromOCRWords(data.tsv)||data.text||'';
+parseOCRText();
+if(!OCR_STATE.rows.length)ocrStatus('没有找到含科目和金额的行。请裁剪并提高清晰度，或在“查看或修正识别文本”中修正后重新解析。');
+}catch(e){if(run===OCR_STATE.run)ocrStatus('图片识别未完成：'+(e.message||'请检查网络或图片格式后重试。'));}
+finally{clearTimeout(timer);if(run===OCR_STATE.run){OCR_STATE.run++;OCR_STATE.worker=null;ocrBusy(false);}if(worker)await worker.terminate().catch(()=>{});}
+}
+function cancelOCR(){
+OCR_STATE.run++;const worker=OCR_STATE.worker;OCR_STATE.worker=null;
+if(worker)worker.terminate().catch(()=>{});ocrBusy(false);ocrStatus('已取消识别，原有表格数据未改动。');
+}
+function normalizedOCRLabel(label){
+return label.normalize('NFKC').replace(/^[一二三四五六七八九十]+[、.．]/,'').replace(/(?:其中|减|加)[:：]/g,'').replace(/[^\u3400-\u9fffA-Za-z]/g,'').replace(/^其中/,'').toLowerCase();
+}
+function matchOCRField(label,key){
+const text=normalizedOCRLabel(label);if(!text)return {id:'',exact:false};
+const aliases=FIELD_MAP[key].flatMap(f=>[f.label,...(OCR_ALIASES[f.id]||[])].map(s=>({id:f.id,text:normalizedOCRLabel(s)})));
+const exact=[...new Set(aliases.filter(a=>a.text===text).map(a=>a.id))];
+if(exact.length===1)return {id:exact[0],exact:true};
+const suggestions=[...new Set(aliases.filter(a=>Math.min(a.text.length,text.length)>=5&&(a.text.includes(text)||text.includes(a.text))&&Math.min(a.text.length,text.length)/Math.max(a.text.length,text.length)>=.8).map(a=>a.id))];
+return {id:suggestions.length===1?suggestions[0]:'',exact:false};
+}
+function extractOCRRows(raw,key,column=0,multiplier=null){
+const rows=[];
+for(const original of raw.split(/\r?\n/)){
+let line=original.normalize('NFKC').replace(/−/g,'-').replace(/[一二三四五六七八九十]+[、．.]\s*\d+(?:\(\d+\))?/g,'').replace(/\([^()]*?(?:填列|号填|亏损)[^()]*\)/g,'');
+line=line.replace(/([+-]) +(?=\d)/g,'$1');
+if(!line.trim()||/^(?:项目|单位|币种|编制单位|附注|合并资产负债表|合并利润表|合并现金流量表)/.test(line.trim()))continue;
+const numbers=[...line.matchAll(/(?:[-+]?\(?\d[\d,]*(?:\.\d+)?\)?%?)|(?:[—–－-]{1,2}(?!\d))/g)];
+if(!numbers.length)continue;
+const label=line.slice(0,numbers[0].index).trim();
+if(!/[\u3400-\u9fff]/.test(label)||/^(?:报表|日期|年度|本期|上期|期末|期初|本年|上年)/.test(label))continue;
+const tail=line.slice(numbers[0].index);
+if(/年|月|日/.test(tail))continue;
+const token=numbers[column]?.[0]??'',match=matchOCRField(label,key);
+const isRate=/Rate$/.test(match.id),parsed=token&&!/^[—–－-]+$/.test(token)?parseFinancialNumber(token,isRate):{value:null};
+const scaled=parsed.value===null?null:isRate?parsed.value:multiplier===null?null:parsed.value*multiplier;
+const value=scaled!==null&&Number.isFinite(scaled)?String(Number(scaled.toPrecision(15))):'';
+rows.push({label,source:original,tokens:numbers.map(n=>n[0]),token,field:match.id,value,exact:match.exact,selected:match.exact&&value!==''});
+if(rows.length>=150)break;
+}
+const frequency=new Map();for(const row of rows)if(row.field)frequency.set(row.field,(frequency.get(row.field)||0)+1);
+for(const row of rows)if(frequency.get(row.field)>1){row.selected=false;row.duplicate=true;}
+return rows;
+}
+function parseOCRText(quiet=false){
+if(OCR_STATE.busy&&quiet!==false)return;
+const raw=document.getElementById('ocrRawText').value;
+const unit=document.getElementById('ocrUnit');
+const unitMatch=raw.replace(/\s/g,'').match(/单位[:：]?.{0,12}?(百万元|万元|千元|亿元|元)/);
+const factors={'元':'0.0001','千元':'0.1','万元':'1','百万元':'100','亿元':'10000'};
+if(unit.value===''&&unitMatch)unit.value=factors[unitMatch[1]];
+const years=[...new Set(raw.match(/(?:19|20)\d{2}(?=\s*[年.\/-])/g)||[])];
+document.getElementById('ocrDetected').textContent=(unitMatch?'检测到原图单位：'+unitMatch[1]+'。':'未检测到明确单位，请手动确认。')+(years.length?' 图片中出现年份：'+years.join('、')+'，请核对目标年份。':'')+' 多列金额按从左往右选择；如含数字附注列，请裁去该列或调整列号。';
+OCR_STATE.rows=extractOCRRows(raw,document.getElementById('ocrTarget').value,+document.getElementById('ocrColumn').value,unit.value===''?null:+unit.value);
+renderOCRReview();
+if(!quiet&&raw.trim())ocrStatus('已解析'+OCR_STATE.rows.length+'行，其中'+OCR_STATE.rows.filter(r=>r.selected).length+'行科目精确匹配。请检查后确认导入。');
+}
+function renderOCRReview(){
+const key=document.getElementById('ocrTarget')?.value||'bs',year=document.getElementById('ocrYear')?.value;
+const wrap=document.getElementById('ocrReview');if(!wrap)return;
+if(!OCR_STATE.rows.length){wrap.innerHTML='';document.getElementById('ocrApply').disabled=true;return;}
+let html='<table class="metric-table"><thead><tr><th>导入</th><th>识别科目</th><th>对应字段</th><th>原图金额</th><th>填入数值（万元）</th><th>目标原值 / 提示</th></tr></thead><tbody>';
+OCR_STATE.rows.forEach((row,i)=>{
+const existing=allData[key]?.[year]?.[row.field],filled=existing!==undefined&&existing!==null&&String(existing).trim()!=='';
+html+='<tr><td><input type="checkbox" data-ocr-check="'+i+'" aria-label="导入第'+(i+1)+'行" '+(row.selected?'checked':'')+'></td><td>'+escHtml(row.label)+'</td><td><select data-ocr-field="'+i+'" aria-label="第'+(i+1)+'行对应科目"><option value="">请选择科目</option>'+FIELD_MAP[key].map(f=>'<option value="'+f.id+'" '+(f.id===row.field?'selected':'')+'>'+escHtml(f.label)+'</option>').join('')+'</select></td><td>'+escHtml(row.token||'该列缺失')+'</td><td><input type="text" inputmode="decimal" aria-label="第'+(i+1)+'行确认金额" data-ocr-value="'+i+'" value="'+escHtml(row.value)+'"></td><td>'+escHtml(filled?String(existing):'空白')+'<small>'+escHtml(row.duplicate?'同一科目重复出现，请只勾选一行':!row.field?'尚未匹配，需手动选择科目':!row.exact?'建议匹配，需人工确认':row.value===''?'请确认金额列及原图单位':filled&&!document.getElementById('ocrOverwrite').checked?'已有数据，导入时将保留':'请对照原图核验')+'</small></td></tr>';
+});
+wrap.innerHTML=html+'</tbody></table>';
+wrap.querySelectorAll('[data-ocr-check]').forEach(el=>el.onchange=()=>{OCR_STATE.rows[+el.dataset.ocrCheck].selected=el.checked;});
+wrap.querySelectorAll('[data-ocr-field]').forEach(el=>el.onchange=()=>{const row=OCR_STATE.rows[+el.dataset.ocrField];row.field=el.value;row.exact=false;row.selected=false;renderOCRReview();});
+wrap.querySelectorAll('[data-ocr-value]').forEach(el=>el.oninput=()=>{OCR_STATE.rows[+el.dataset.ocrValue].value=el.value;});
+document.getElementById('ocrApply').disabled=OCR_STATE.busy||!OCR_STATE.rows.length;
+}
+function applyOCRRows(){
+if(OCR_STATE.busy)return;
+const key=document.getElementById('ocrTarget').value,year=+document.getElementById('ocrYear').value,unit=document.getElementById('ocrUnit').value;
+if(unit===''){ocrStatus('请先确认图片原始金额单位，再核对换算后的金额。');return;}
+if(!getYears().includes(year)){ocrStatus('目标年份不在分析区间内，请重新选择。');return;}
+const selected=OCR_STATE.rows.filter(r=>r.selected);if(!selected.length){ocrStatus('请先勾选需要导入的行。');return;}
+const seen=new Set(),prepared=[];
+for(const row of selected){
+if(!FIELD_MAP[key].some(f=>f.id===row.field)){ocrStatus('“'+row.label+'”尚未选择对应科目。');return;}
+if(seen.has(row.field)){ocrStatus('同一科目勾选了多行，请只保留一行后再导入。');return;}seen.add(row.field);
+const parsed=parseFinancialNumber(row.value,/Rate$/.test(row.field));
+if(parsed.value===null){ocrStatus('“'+row.label+'”金额为空或无效，请修正后再导入。');return;}
+prepared.push({field:row.field,value:String(parsed.value)});
+}
+const overwrite=document.getElementById('ocrOverwrite').checked;
+if(!allData[key][year])allData[key][year]={};
+let imported=0,skipped=0;
+for(const row of prepared){const old=allData[key][year][row.field];
+if(!overwrite&&old!==undefined&&old!==null&&String(old).trim()!==''){skipped++;continue;}
+allData[key][year][row.field]=row.value;imported++;}
+rebuildTables();syncOpeningInputs();dataChanged();
+for(const row of OCR_STATE.rows)row.selected=false;
+renderOCRReview();ocrStatus('已填入'+year+'年'+document.getElementById('ocrTarget').selectedOptions[0].textContent+'：'+imported+'项。保留已有数据'+skipped+'项。请切换对应表格查看。');
 }
 // ==================== LOCAL CALCULATION ====================
 function parseFinancialNumber(raw,allowPercent=false){
